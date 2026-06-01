@@ -66,7 +66,7 @@ async function signInWithGoogle() {
     // onAuthStateChanged se encarga del resto
   } catch (err) {
     console.error(err);
-    showToast('❌ Error al iniciar sesión con Google', 'error');
+    showToast(`❌ Error: ${err.code || err.message || 'Error al iniciar sesión'}`, 'error');
     btn.disabled = false;
     btn.innerHTML = `
       <svg width="22" height="22" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
