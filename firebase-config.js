@@ -8,14 +8,14 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getFirestore, collection, doc, setDoc, onSnapshot, getDoc, updateDoc, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-// 🔴 REEMPLAZA ESTE OBJETO CON EL TUYO (Firebase Console → Proyecto → Config)
+// ✅ Credenciales reales del proyecto mundialistas-snsp
 const firebaseConfig = {
-  apiKey:            "REEMPLAZA_CON_TU_API_KEY",
-  authDomain:        "REEMPLAZA.firebaseapp.com",
-  projectId:         "REEMPLAZA_CON_TU_PROJECT_ID",
-  storageBucket:     "REEMPLAZA.appspot.com",
-  messagingSenderId: "REEMPLAZA",
-  appId:             "REEMPLAZA_CON_TU_APP_ID"
+  apiKey:            "AIzaSyDK5505wgtE5qx4IhQZaXdAyPGrMYgWfeQ",
+  authDomain:        "mundialistas-snsp.firebaseapp.com",
+  projectId:         "mundialistas-snsp",
+  storageBucket:     "mundialistas-snsp.firebasestorage.app",
+  messagingSenderId: "548202037249",
+  appId:             "1:548202037249:web:b2414c27a695c46d37c000"
 };
 
 // Inicializar Firebase y Firestore
