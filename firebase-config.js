@@ -14,7 +14,7 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signO
 
 // ✅ Credenciales reales del proyecto mundialistas-snsp
 const firebaseConfig = {
-  apiKey:            "AIzaSyDK5505wgtE5qx4IhQZaXdAyPGrMYgWfeQ",
+  apiKey:            "AIzaSyDK55O5wgtE5qx4IhQZaXdAyPGrMYgWfeQ",
   authDomain:        "mundialistas-snsp.firebaseapp.com",
   projectId:         "mundialistas-snsp",
   storageBucket:     "mundialistas-snsp.firebasestorage.app",
