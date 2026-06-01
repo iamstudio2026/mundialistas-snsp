@@ -6,6 +6,23 @@
 // 🔑 EMAIL DEL ADMINISTRADOR — solo este usuario ve el panel admin
 const ADMIN_EMAIL = 'phd.vicenternesto@gmail.com';
 
+// =============================================
+//  ESTADO DE LA APP
+// =============================================
+let state = {
+  currentPlayer: null,
+  players: [],          // [{ name, color, predictions: {matchId: {home, away}}, points, exactos, ganadores, racha }]
+  realResults: {},      // { matchId: {home, away} }
+  wheelTeams: [],
+  wheelSpinning: false,
+  currentAngle: 0,
+  currentTriviaQ: 0,
+  triviaScore: 0,
+  triviaAnswered: false,
+  currentRuletaTab: 'equipo',
+  currentWheelGroup: 'all',
+};
+
 // Detección de Firebase
 let db = null;
 let FB = null;
@@ -431,22 +448,7 @@ const TRIVIA_QUESTIONS = [
   }
 ];
 
-// =============================================
-//  ESTADO DE LA APP
-// =============================================
-let state = {
-  currentPlayer: null,
-  players: [],          // [{ name, color, predictions: {matchId: {home, away}}, points, exactos, ganadores, racha }]
-  realResults: {},      // { matchId: {home, away} }
-  wheelTeams: [],
-  wheelSpinning: false,
-  currentAngle: 0,
-  currentTriviaQ: 0,
-  triviaScore: 0,
-  triviaAnswered: false,
-  currentRuletaTab: 'equipo',
-  currentWheelGroup: 'all',
-};
+// (El estado de la app se ha movido al inicio del archivo)
 
 // =============================================
 //  INIT
