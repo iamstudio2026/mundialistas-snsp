@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mundialistas SNSP 2026 🏆 — Quiniela del Mundial</title>
+  <meta name="description" content="La quiniela oficial del Mundial 2026 para los compas del SNSP. Pronostica, compite y gana." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <!-- Firebase SDK -->
+  <script type="module" src="firebase-config.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ========== PANTALLA DE BIENVENIDA ========== -->
+<div id="splash-screen" class="splash-screen">
+  <div class="splash-bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="splash-content">
+    <div class="trophy-icon">🏆</div>
+    <h1 class="splash-title">MUNDIALISTAS</h1>
+    <p class="splash-subtitle">SNSP · Quiniela Oficial 2026</p>
+    <p class="splash-desc">¿Quién sabe más de fútbol en la oficina?</p>
+
+    <div class="player-setup">
+      <label for="player-name-input">Tu nombre (o apodo de oficina)</label>
+      <input type="text" id="player-name-input" placeholder="Ej: El Profe, La Jefa, Chaparrito..." maxlength="25" />
+      <button id="btn-enter" class="btn-primary btn-glow" onclick="enterApp()">
+        ¡Entrar a la Cancha! ⚽
+      </button>
+    </div>
+
+    <div class="splash-players-preview" id="players-list-preview">
+      <!-- se llena dinámicamente -->
+    </div>
+  </div>
+</div>
+
+<!-- ========== APP PRINCIPAL ========== -->
+<div id="main-app" class="main-app hidden">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="header-trophy">🏆</span>
+      <div>
+        <h1 class="header-title">MUNDIALISTAS SNSP</h1>
+        <span class="header-sub">Mundial 2026 · Canadá · México · USA</span>
+      </div>
+    </div>
+    <div class="header-user">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div>
+        <span class="user-name" id="header-user-name">—</span>
+        <span class="user-pts" id="header-user-pts">0 pts</span>
+      </div>
+    </div>
+    <nav class="nav-pills">
+      <button class="nav-btn active" id="nav-home" onclick="showSection('home')">🏠 Inicio</button>
+      <button class="nav-btn" id="nav-quiniela" onclick="showSection('quiniela')">📋 Quiniela</button>
+      <button class="nav-btn" id="nav-grupos" onclick="showSection('grupos')">🗓️ Grupos</button>
+      <button class="nav-btn" id="nav-ranking" onclick="showSection('ranking')">🥇 Ranking</button>
+      <button class="nav-btn" id="nav-ruleta" onclick="showSection('ruleta')">🎰 Ruleta</button>
+    </nav>
+  </header>
+
+  <!-- ===== SECCION: INICIO ===== -->
+  <section id="section-home" class="section-content">
+    <div class="hero-banner">
+      <div class="hero-text">
+        <h2 class="hero-title">¡El Mundial está aquí! 🔥</h2>
+        <p class="hero-desc">48 equipos · 12 grupos · 104 partidos · 1 campeón</p>
+        <p class="hero-date">11 Jun – 19 Jul 2026 | México · USA · Canadá</p>
+      </div>
+      <div class="hero-flags">🇲🇽🇺🇸🇨🇦</div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="stats-row" id="home-stats">
+      <div class="stat-card">
+        <span class="stat-num" id="stat-players">0</span>
+        <span class="stat-label">Jugadores</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="stat-predictions">0</span>
+        <span class="stat-label">Pronósticos</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="stat-matches">104</span>
+        <span class="stat-label">Partidos</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num" id="stat-days">—</span>
+        <span class="stat-label">Días restantes</span>
+      </div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown-card">
+      <h3>⏳ Cuenta Regresiva al Inicio</h3>
+      <div class="countdown-grid" id="countdown">
+        <div class="cd-block"><span id="cd-days">00</span><label>Días</label></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-block"><span id="cd-hours">00</span><label>Horas</label></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-block"><span id="cd-mins">00</span><label>Min</label></div>
+        <div class="cd-sep">:</div>
+        <div class="cd-block"><span id="cd-secs">00</span><label>Seg</label></div>
+      </div>
+      <p class="countdown-match">🏟️ Apertura: <strong>México 🇲🇽 vs 🇿🇦 Sudáfrica</strong> — Estadio Azteca</p>
+    </div>
+
+    <!-- Líder del momento -->
+    <div class="leader-card" id="leader-card">
+      <h3>👑 Líder actual de la Quiniela</h3>
+      <div class="leader-content" id="leader-content">
+        <p class="no-data">Nadie ha registrado puntos aún. ¡Sé el primero!</p>
+      </div>
+    </div>
+
+    <!-- Botones rápidos -->
+    <div class="quick-actions">
+      <button class="btn-action" onclick="showSection('quiniela')">📋 Hacer mis pronósticos</button>
+      <button class="btn-action btn-accent" onclick="showSection('ruleta')">🎰 Girar la Ruleta</button>
+      <button class="btn-action btn-secondary" onclick="showSection('grupos')">🗺️ Ver los grupos</button>
+    </div>
+  </section>
+
+  <!-- ===== SECCION: QUINIELA ===== -->
+  <section id="section-quiniela" class="section-content hidden">
+    <div class="section-header">
+      <h2>📋 Mi Quiniela</h2>
+      <p>Pronostica los resultados y gana puntos. ¡El que más acierte gana!</p>
+    </div>
+
+    <div class="scoring-legend">
+      <div class="score-rule"><span class="score-badge gold">3 pts</span> Resultado exacto</div>
+      <div class="score-rule"><span class="score-badge silver">1 pt</span> Ganador correcto</div>
+      <div class="score-rule"><span class="score-badge bronze">0 pts</span> Sin puntos</div>
+    </div>
+
+    <div class="phase-tabs">
+      <button class="phase-tab active" onclick="switchPhase('grupos', this)">Fase de Grupos</button>
+      <button class="phase-tab" onclick="switchPhase('eliminacion', this)">Fase Eliminatoria</button>
+    </div>
+
+    <div id="quiniela-grupos">
+      <!-- se generan dinámicamente -->
+    </div>
+
+    <div id="quiniela-eliminacion" class="hidden">
+      <div class="info-box">
+        <p>⚠️ Las quinielas eliminatorias se desbloquean cuando termine la fase de grupos (28 Jun 2026)</p>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <button class="btn-primary btn-glow btn-save" onclick="savePredictions()">💾 Guardar mis pronósticos</button>
+    </div>
+  </section>
+
+  <!-- ===== SECCION: GRUPOS ===== -->
+  <section id="section-grupos" class="section-content hidden">
+    <div class="section-header">
+      <h2>🗓️ Grupos del Mundial 2026</h2>
+      <p>12 grupos · 48 selecciones · Sede: Canadá, México y USA</p>
+    </div>
+    <div class="groups-grid" id="groups-grid">
+      <!-- se genera dinámicamente -->
+    </div>
+  </section>
+
+  <!-- ===== SECCION: RANKING ===== -->
+  <section id="section-ranking" class="section-content hidden">
+    <div class="section-header">
+      <h2>🥇 Ranking de la Oficina</h2>
+      <p>¿Quién es el más mundialista del SNSP?</p>
+    </div>
+
+    <!-- Admin: ingresar resultados -->
+    <div class="admin-panel">
+      <button class="btn-toggle-admin" onclick="toggleAdminPanel()">⚙️ Ingresar Resultado Real</button>
+      <div id="admin-form" class="admin-form hidden">
+        <h4>Registrar Resultado Real</h4>
+        <select id="admin-match-select">
+          <option value="">— Selecciona un partido —</option>
+        </select>
+        <div class="score-inputs">
+          <input type="number" id="admin-score-home" min="0" max="20" placeholder="0" />
+          <span>vs</span>
+          <input type="number" id="admin-score-away" min="0" max="20" placeholder="0" />
+        </div>
+        <button class="btn-primary" onclick="saveRealResult()">✅ Registrar y Calcular Puntos</button>
+      </div>
+    </div>
+
+    <div class="ranking-table-wrap">
+      <table class="ranking-table" id="ranking-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Jugador</th>
+            <th>Exactos</th>
+            <th>Ganadores</th>
+            <th>Total Pts</th>
+            <th>Racha</th>
+          </tr>
+        </thead>
+        <tbody id="ranking-body">
+          <tr><td colspan="6" class="no-data">Nadie registrado aún.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== SECCION: RULETA ===== -->
+  <section id="section-ruleta" class="section-content hidden">
+    <div class="section-header">
+      <h2>🎰 Ruleta Mundialista</h2>
+      <p>¿No saben a quién apoyar? ¡Que decida la ruleta! También sortea equipos entre compas.</p>
+    </div>
+
+    <div class="ruleta-tabs">
+      <button class="ruleta-tab active" onclick="switchRuleta('equipo', this)">🌍 Equipo al Azar</button>
+      <button class="ruleta-tab" onclick="switchRuleta('sorteo', this)">👥 Sorteo entre Amigos</button>
+      <button class="ruleta-tab" onclick="switchRuleta('desafio', this)">⚡ Desafío Mundialista</button>
+    </div>
+
+    <!-- Equipo al azar -->
+    <div id="ruleta-equipo">
+      <div class="wheel-container">
+        <canvas id="wheel-canvas" width="380" height="380"></canvas>
+        <button class="btn-spin" id="btn-spin" onclick="spinWheel()">
+          <span>GIRAR</span>
+        </button>
+      </div>
+      <div class="wheel-result hidden" id="wheel-result">
+        <div class="result-emoji" id="result-flag">🌍</div>
+        <h3 id="result-team-name">—</h3>
+        <p id="result-team-group">—</p>
+        <button class="btn-secondary" onclick="spinWheel()">🔄 Girar otra vez</button>
+      </div>
+
+      <div class="filter-row">
+        <label>Filtrar por grupo:</label>
+        <select id="wheel-group-filter" onchange="updateWheelGroups()">
+          <option value="all">Todos los grupos</option>
+          <option value="A">Grupo A</option>
+          <option value="B">Grupo B</option>
+          <option value="C">Grupo C</option>
+          <option value="D">Grupo D</option>
+          <option value="E">Grupo E</option>
+          <option value="F">Grupo F</option>
+          <option value="G">Grupo G</option>
+          <option value="H">Grupo H</option>
+          <option value="I">Grupo I</option>
+          <option value="J">Grupo J</option>
+          <option value="K">Grupo K</option>
+          <option value="L">Grupo L</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Sorteo entre amigos -->
+    <div id="ruleta-sorteo" class="hidden">
+      <div class="sorteo-panel">
+        <h3>🎟️ Sorteo de Equipos entre Compas</h3>
+        <p>Cada jugador registrado recibe equipos al azar para apoyar durante el torneo.</p>
+        <div class="sorteo-config">
+          <label>Equipos por persona:</label>
+          <input type="number" id="teams-per-person" min="1" max="6" value="2" />
+        </div>
+        <button class="btn-primary btn-glow" onclick="runSorteo()">🎲 ¡Hacer el Sorteo!</button>
+
+        <div id="sorteo-results" class="sorteo-results hidden">
+          <!-- resultados del sorteo -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Desafío mundialista -->
+    <div id="ruleta-desafio" class="hidden">
+      <div class="desafio-panel">
+        <h3>⚡ Desafío Mundialista</h3>
+        <p>¡Un mini-juego de preguntas sobre el Mundial para calentar el ambiente!</p>
+        <div id="trivia-area">
+          <div class="trivia-welcome">
+            <div class="trivia-icon">🧠</div>
+            <h4>¿Cuánto sabes de fútbol?</h4>
+            <button class="btn-primary btn-glow" onclick="startTrivia()">¡Empezar Desafío!</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ========== TOAST NOTIFICATION ========== -->
+<div id="toast" class="toast hidden">
+  <span id="toast-msg">✅ Guardado</span>
+</div>
+
+<!-- ========== CONFETTI CANVAS ========== -->
+<canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
