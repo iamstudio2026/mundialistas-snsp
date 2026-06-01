@@ -6,7 +6,7 @@
 import { initializeApp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 
-import { getFirestore, collection, doc, setDoc, onSnapshot, getDoc, updateDoc, serverTimestamp }
+import { getFirestore, collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
@@ -32,7 +32,7 @@ const provider = new GoogleAuthProvider();
 window.__FB_DB__    = db;
 window.__FB_AUTH__  = auth;
 window.__FB_FUNCS__ = {
-  collection, doc, setDoc, onSnapshot, getDoc, updateDoc, serverTimestamp,
+  collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, serverTimestamp,
   signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut,
   provider
 };

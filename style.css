@@ -836,3 +836,35 @@ body {
   background: var(--gradient-gold);
   transition: width 0.5s ease;
 }
+
+/* ---- NEW ADMIN STYLES ---- */
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+.admin-sec-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.admin-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.admin-row select {
+  flex: 1;
+}
+.admin-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.admin-buttons button {
+  width: 100%;
+  text-align: center;
+  padding: 12px;
+  font-size: 14px;
+}

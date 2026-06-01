@@ -195,20 +195,53 @@
       <p>¿Quién es el más mundialista del SNSP?</p>
     </div>
 
-    <!-- Admin: ingresar resultados -->
-    <div class="admin-panel">
-      <button class="btn-toggle-admin" onclick="toggleAdminPanel()">⚙️ Ingresar Resultado Real</button>
+    <!-- Admin: panel de control -->
+    <div class="admin-panel hidden" id="admin-panel">
+      <button class="btn-toggle-admin" onclick="toggleAdminPanel()">⚙️ Panel de Administración</button>
       <div id="admin-form" class="admin-form hidden">
-        <h4>Registrar Resultado Real</h4>
-        <select id="admin-match-select">
-          <option value="">— Selecciona un partido —</option>
-        </select>
-        <div class="score-inputs">
-          <input type="number" id="admin-score-home" min="0" max="20" placeholder="0" />
-          <span>vs</span>
-          <input type="number" id="admin-score-away" min="0" max="20" placeholder="0" />
+        <h3>Panel de Control Admin SNSP 🔑</h3>
+        
+        <!-- Sección: Resultados Reales -->
+        <div class="admin-section">
+          <h4>🏆 Registrar Resultado Real</h4>
+          <p class="admin-sec-desc">Registra el marcador oficial de un partido. Se recalcularán los puntos de todos automáticamente.</p>
+          <select id="admin-match-select">
+            <option value="">— Selecciona un partido —</option>
+          </select>
+          <div class="score-inputs">
+            <input type="number" id="admin-score-home" min="0" max="20" placeholder="0" />
+            <span>vs</span>
+            <input type="number" id="admin-score-away" min="0" max="20" placeholder="0" />
+          </div>
+          <button class="btn-primary" onclick="saveRealResult()">✅ Registrar y Calcular Puntos</button>
         </div>
-        <button class="btn-primary" onclick="saveRealResult()">✅ Registrar y Calcular Puntos</button>
+
+        <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;" />
+
+        <!-- Sección: Gestionar Jugadores -->
+        <div class="admin-section">
+          <h4>👥 Eliminar Jugador</h4>
+          <p class="admin-sec-desc">Elimina la cuenta y pronósticos de un jugador del ranking.</p>
+          <div class="admin-row">
+            <select id="admin-player-select">
+              <option value="">— Selecciona un jugador —</option>
+            </select>
+            <button class="btn-secondary" style="background: var(--red); color: white; border: none;" onclick="deletePlayerBtn()">🗑️ Eliminar</button>
+          </div>
+        </div>
+
+        <hr style="border-color: rgba(255,255,255,0.05); margin: 20px 0;" />
+
+        <!-- Sección: Acciones de Reseteo -->
+        <div class="admin-section">
+          <h4>⚠️ Acciones de Peligro</h4>
+          <p class="admin-sec-desc">Estas acciones son irreversibles. Úsalas con cuidado.</p>
+          <div class="admin-buttons">
+            <button class="btn-secondary" onclick="resetAllScoresBtn()" style="border-color: var(--gold); color: var(--gold);">🔄 Reiniciar Marcadores Reales (Puntos a 0)</button>
+            <button class="btn-secondary" onclick="clearAllDataBtn()" style="border-color: var(--red); color: var(--red);">🚨 Borrar Absolutamente Todo</button>
+          </div>
+        </div>
+
       </div>
     </div>
 

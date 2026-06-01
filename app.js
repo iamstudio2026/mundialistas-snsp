@@ -1,14 +1,21 @@
 /* ==============================================
    MUNDIALISTAS SNSP 2026 — app.js
-   La quiniela más épica de la oficina
-   v2.1 — Firebase Auth (Gmail) + Firestore
+   v2.2 — Firebase Auth (Gmail) + Admin Panel
    ============================================== */
+
+// 🔑 EMAIL DEL ADMINISTRADOR — solo este usuario ve el panel admin
+const ADMIN_EMAIL = 'phd.vicenternesto@gmail.com';
 
 // Detección de Firebase
 let db = null;
 let FB = null;
 let auth = null;
 let USE_FIREBASE = false;
+
+// Helper: saber si el usuario actual es admin
+function isAdmin() {
+  return state.currentPlayer?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+}
 
 function initFirebase() {
   if (window.__FIREBASE_READY__ && window.__FB_DB__) {
@@ -130,6 +137,15 @@ function addSignOutButton() {
   if (document.getElementById('btn-signout')) return;
   const userDiv = document.querySelector('.header-user');
   if (!userDiv) return;
+
+  // Badge ADMIN si corresponde
+  if (isAdmin()) {
+    const badge = document.createElement('span');
+    badge.style.cssText = 'background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-size:10px;font-weight:900;padding:3px 8px;border-radius:50px;letter-spacing:1px;';
+    badge.textContent = '🔑 ADMIN';
+    userDiv.appendChild(badge);
+  }
+
   const btn = document.createElement('button');
   btn.id = 'btn-signout';
   btn.title = 'Cerrar sesión';
@@ -535,30 +551,65 @@ async function saveToFirestore() {
   }, { merge: true });
 }
 
+async function recalculateAllPointsFirestore() {
+  if (!USE_FIREBASE) return;
+  const { doc, setDoc } = FB;
+  
+  for (const player of state.players) {
+    let points = 0;
+    let exactos = 0;
+    let ganadores = 0;
+    let racha = 0;
+
+    // Ordenar partidos para calcular la racha cronológicamente
+    const sortedMatches = [...GROUP_MATCHES].sort((a, b) => a.id - b.id);
+    sortedMatches.forEach(m => {
+      const real = state.realResults[m.id];
+      if (real && real.home !== undefined && real.home !== null && real.away !== undefined && real.away !== null) {
+        const pred = player.predictions?.[m.id];
+        if (pred && pred.home !== undefined && pred.home !== null && pred.home !== '' && pred.away !== undefined && pred.away !== null && pred.away !== '') {
+          const pts = calcPoints(pred, real);
+          points += pts;
+          if (pts === 3) {
+            exactos++;
+            racha++;
+          } else if (pts === 1) {
+            ganadores++;
+            racha++;
+          } else {
+            racha = 0;
+          }
+        }
+      }
+    });
+
+    const playerKey = player.uid || player.id || player.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    await setDoc(doc(db, 'players', playerKey), {
+      points,
+      exactos,
+      ganadores,
+      racha
+    }, { merge: true });
+  }
+}
+
 async function saveRealResultFirestore(matchId, home, away) {
   if (!USE_FIREBASE) return;
   const { doc, setDoc } = FB;
+  
+  // 1. Guardar resultado en Firestore
   await setDoc(doc(db, 'results', String(matchId)), {
     matchId, home, away,
     updatedAt: new Date().toISOString()
   });
-  // Recalcular puntos de todos en Firestore
-  const { collection, doc: docRef, setDoc: setDocF } = FB;
-  for (const player of state.players) {
-    const pred = player.predictions?.[matchId];
-    if (pred && pred.home !== '' && pred.away !== '') {
-      const pts = calcPoints(pred, { home, away });
-      const updatedPlayer = {
-        ...player,
-        points: (player.points || 0) + pts,
-        exactos: pts === 3 ? (player.exactos || 0) + 1 : (player.exactos || 0),
-        ganadores: pts === 1 ? (player.ganadores || 0) + 1 : (player.ganadores || 0),
-        racha: pts > 0 ? (player.racha || 0) + 1 : 0,
-      };
-      const pKey = player.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-      await setDocF(docRef(db, 'players', pKey), updatedPlayer);
-    }
-  }
+
+  // 2. Actualizar estado local para cálculo inmediato
+  state.realResults[matchId] = { home, away };
+  const match = GROUP_MATCHES.find(m => m.id === matchId);
+  if (match) match.realScore = { home, away };
+
+  // 3. Recalcular puntos de todos los jugadores en la nube
+  await recalculateAllPointsFirestore();
 }
 
 // =============================================
@@ -918,6 +969,16 @@ function renderRankingTable() {
   const tbody = document.getElementById('ranking-body');
   if (!tbody) return;
 
+  // Mostrar panel de administración si es admin
+  const adminPanel = document.getElementById('admin-panel');
+  if (adminPanel) {
+    if (isAdmin()) {
+      adminPanel.classList.remove('hidden');
+    } else {
+      adminPanel.classList.add('hidden');
+    }
+  }
+
   const sorted = [...state.players].sort((a, b) => b.points - a.points || b.exactos - a.exactos);
 
   if (sorted.length === 0) {
@@ -962,6 +1023,9 @@ function getStreakEmoji(racha) {
 function toggleAdminPanel() {
   const form = document.getElementById('admin-form');
   form.classList.toggle('hidden');
+  if (!form.classList.contains('hidden')) {
+    populateAdminPlayerSelect();
+  }
 }
 
 function populateAdminMatchSelect() {
@@ -1379,3 +1443,153 @@ function showToast(msg, type = 'success') {
 window.addEventListener('resize', () => {
   updateWheelGroups();
 });
+
+// =============================================
+//  FUNCIONES PANEL ADMIN
+// =============================================
+
+function populateAdminPlayerSelect() {
+  const sel = document.getElementById('admin-player-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Selecciona un jugador —</option>';
+  const sortedPlayers = [...state.players].sort((a, b) => a.name.localeCompare(b.name));
+  sortedPlayers.forEach(p => {
+    const opt = document.createElement('option');
+    const playerKey = p.uid || p.id || p.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    opt.value = playerKey;
+    opt.textContent = `${p.name} (${p.email || 'Local'})`;
+    sel.appendChild(opt);
+  });
+}
+
+async function deletePlayerBtn() {
+  const playerKey = document.getElementById('admin-player-select').value;
+  if (!playerKey) {
+    showToast('⚠️ Selecciona un jugador para eliminar', 'error');
+    return;
+  }
+  
+  const p = state.players.find(x => (x.uid === playerKey || x.id === playerKey || x.name.toLowerCase().replace(/[^a-z0-9]/g, '_') === playerKey));
+  const pName = p ? p.name : playerKey;
+
+  if (!confirm(`¿Estás seguro de que quieres eliminar por completo a "${pName}"? Esto borrará sus datos y pronósticos de forma permanente.`)) {
+    return;
+  }
+
+  showToast('⏳ Eliminando jugador...');
+  
+  if (USE_FIREBASE) {
+    const { doc, deleteDoc } = FB;
+    try {
+      await deleteDoc(doc(db, 'players', playerKey));
+      showToast(`✅ Jugador ${pName} eliminado de Firestore`);
+    } catch (err) {
+      console.error('Error al borrar jugador de Firestore:', err);
+      showToast('❌ Error al borrar de Firestore', 'error');
+    }
+  } else {
+    state.players = state.players.filter(x => (x.uid !== playerKey && x.id !== playerKey && x.name.toLowerCase().replace(/[^a-z0-9]/g, '_') !== playerKey));
+    saveState();
+    renderRankingTable();
+    showToast(`✅ Jugador ${pName} eliminado localmente`);
+  }
+  populateAdminPlayerSelect();
+}
+
+async function resetAllScoresBtn() {
+  if (!confirm('⚠️ ¿Estás seguro de que quieres REINICIAR todos los marcadores reales? Esto pondrá los puntos y estadísticas de TODOS los jugadores en 0, pero mantendrá sus pronósticos intactos.')) {
+    return;
+  }
+
+  showToast('⏳ Reiniciando marcadores...');
+
+  state.realResults = {};
+  GROUP_MATCHES.forEach(m => {
+    m.realScore = null;
+  });
+
+  if (USE_FIREBASE) {
+    const { doc, deleteDoc } = FB;
+    try {
+      for (let id = 1; id <= 104; id++) {
+        await deleteDoc(doc(db, 'results', String(id)));
+      }
+      await recalculateAllPointsFirestore();
+      showToast('✅ Marcadores y puntos reiniciados en la nube');
+    } catch (err) {
+      console.error('Error al reiniciar marcadores en Firestore:', err);
+      showToast('❌ Error en Firebase', 'error');
+    }
+  } else {
+    state.players.forEach(p => {
+      p.points = 0;
+      p.exactos = 0;
+      p.ganadores = 0;
+      p.racha = 0;
+    });
+    saveState();
+    renderRankingTable();
+    showToast('✅ Marcadores y puntos reiniciados localmente');
+  }
+  
+  renderQuinielaSection();
+  launchConfetti(1500);
+}
+
+async function clearAllDataBtn() {
+  if (!confirm('🚨 ATENCIÓN: Esto borrará ABSOLUTAMENTE TODOS los datos (jugadores, pronósticos y marcadores reales). La app quedará totalmente vacía. ¿Deseas continuar?')) {
+    return;
+  }
+  
+  const doubleCheck = prompt('Para confirmar la eliminación total, escribe la palabra "BORRAR":');
+  if (doubleCheck !== 'BORRAR') {
+    showToast('❌ Cancelado. Texto de confirmación incorrecto.');
+    return;
+  }
+
+  showToast('⏳ Borrando base de datos...');
+
+  if (USE_FIREBASE) {
+    const { doc, deleteDoc } = FB;
+    try {
+      for (let id = 1; id <= 104; id++) {
+        await deleteDoc(doc(db, 'results', String(id)));
+      }
+      for (const p of state.players) {
+        const pKey = p.uid || p.id || p.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        await deleteDoc(doc(db, 'players', pKey));
+      }
+      showToast('✅ Base de datos borrada con éxito.');
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error('Error al borrar la base de datos:', err);
+      showToast('❌ Error al borrar datos en Firestore', 'error');
+    }
+  } else {
+    localStorage.removeItem('mundialistas_snsp_2026');
+    showToast('✅ Datos locales borrados con éxito.');
+    setTimeout(() => {
+      location.reload();
+    }, 1500);
+  }
+}
+
+// Exponer funciones globalmente para los controladores onclick en HTML
+window.signInWithGoogle = signInWithGoogle;
+window.enterApp = enterApp;
+window.showSection = showSection;
+window.savePredictions = savePredictions;
+window.toggleAdminPanel = toggleAdminPanel;
+window.saveRealResult = saveRealResult;
+window.switchPhase = switchPhase;
+window.switchRuleta = switchRuleta;
+window.spinWheel = spinWheel;
+window.runSorteo = runSorteo;
+window.startTrivia = startTrivia;
+window.answerTrivia = answerTrivia;
+window.updateWheelGroups = updateWheelGroups;
+window.deletePlayerBtn = deletePlayerBtn;
+window.resetAllScoresBtn = resetAllScoresBtn;
+window.clearAllDataBtn = clearAllDataBtn;
