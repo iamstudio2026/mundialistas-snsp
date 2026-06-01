@@ -1,12 +1,16 @@
 // =============================================
 //  FIREBASE CONFIG — Mundialistas SNSP 2026
-//  ⚠️ Reemplaza este objeto con el de tu proyecto Firebase
-//  console.firebase.google.com → Proyecto → Configuración → Agregar app web
+//  Auth con Google (Gmail) + Firestore
 // =============================================
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { initializeApp }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+
 import { getFirestore, collection, doc, setDoc, onSnapshot, getDoc, updateDoc, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 // ✅ Credenciales reales del proyecto mundialistas-snsp
 const firebaseConfig = {
@@ -18,16 +22,21 @@ const firebaseConfig = {
   appId:             "1:548202037249:web:b2414c27a695c46d37c000"
 };
 
-// Inicializar Firebase y Firestore
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+// Inicializar Firebase
+const app      = initializeApp(firebaseConfig);
+const db       = getFirestore(app);
+const auth     = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-// Exportar para que app.js los use
-window.__FB_DB__ = db;
+// Exportar para app.js
+window.__FB_DB__    = db;
+window.__FB_AUTH__  = auth;
 window.__FB_FUNCS__ = {
-  collection, doc, setDoc, onSnapshot, getDoc, updateDoc, serverTimestamp
+  collection, doc, setDoc, onSnapshot, getDoc, updateDoc, serverTimestamp,
+  signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut,
+  provider
 };
 window.__FIREBASE_READY__ = true;
 
-// Disparar evento para que app.js sepa que Firebase está listo
+// Avisar a app.js que Firebase está listo
 window.dispatchEvent(new Event('firebase-ready'));

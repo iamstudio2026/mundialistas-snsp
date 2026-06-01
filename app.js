@@ -1,31 +1,149 @@
 /* ==============================================
    MUNDIALISTAS SNSP 2026 — app.js
    La quiniela más épica de la oficina
-   v2.0 — con Firebase Firestore en tiempo real
+   v2.1 — Firebase Auth (Gmail) + Firestore
    ============================================== */
 
-// Detección de Firebase (inyectado por firebase-config.js)
+// Detección de Firebase
 let db = null;
 let FB = null;
+let auth = null;
 let USE_FIREBASE = false;
 
 function initFirebase() {
   if (window.__FIREBASE_READY__ && window.__FB_DB__) {
-    db = window.__FB_DB__;
-    FB = window.__FB_FUNCS__;
+    db   = window.__FB_DB__;
+    FB   = window.__FB_FUNCS__;
+    auth = window.__FB_AUTH__;
     USE_FIREBASE = true;
-    console.log('✅ Firebase conectado — modo en tiempo real');
+    console.log('✅ Firebase + Auth conectados');
+    setupAuthListener();
     startFirestoreListeners();
   } else {
-    console.log('⚠️ Firebase no configurado — usando localStorage');
+    console.log('⚠️ Firebase no configurado — modo local');
     loadStateLocal();
   }
 }
 
-// Esperar a que Firebase esté listo
 window.addEventListener('firebase-ready', initFirebase);
-// También intentar si ya estaba listo antes del evento
 if (window.__FIREBASE_READY__) initFirebase();
+
+// =============================================
+//  GOOGLE SIGN-IN
+// =============================================
+async function signInWithGoogle() {
+  if (!USE_FIREBASE) { showToast('⚠️ Firebase no disponible', 'error'); return; }
+  const btn = document.getElementById('btn-google-signin');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Conectando...';
+  try {
+    const { signInWithPopup, provider } = FB;
+    const result = await signInWithPopup(auth, provider);
+    // onAuthStateChanged se encarga del resto
+  } catch (err) {
+    console.error(err);
+    showToast('❌ Error al iniciar sesión con Google', 'error');
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg width="22" height="22" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Entrar con Google`;
+  }
+}
+
+function setupAuthListener() {
+  const { onAuthStateChanged } = FB;
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // Usuario autenticado con Google— entrar directo
+      await loginWithGoogleUser(user);
+    }
+  });
+}
+
+async function loginWithGoogleUser(user) {
+  const { doc, setDoc } = FB;
+  const colors = ['#ffd700','#ff6b35','#00c853','#2979ff','#e91e63','#00bcd4','#ff5722','#9c27b0'];
+
+  // Buscar o crear jugador en Firestore por UID
+  let player = state.players.find(p => p.uid === user.uid);
+  if (!player) {
+    player = {
+      uid:       user.uid,
+      name:      user.displayName || user.email.split('@')[0],
+      email:     user.email,
+      photo:     user.photoURL || null,
+      color:     colors[state.players.length % colors.length],
+      predictions: {},
+      points:    0,
+      exactos:   0,
+      ganadores: 0,
+      racha:     0,
+    };
+  }
+
+  state.currentPlayer = player;
+
+  // Guardar/actualizar en Firestore
+  await setDoc(doc(db, 'players', user.uid), {
+    ...player,
+    lastLogin: new Date().toISOString()
+  }, { merge: true });
+
+  // Actualizar header con foto de Google
+  const avatarEl = document.getElementById('user-avatar');
+  if (player.photo) {
+    avatarEl.innerHTML = `<img src="${player.photo}" alt="${player.name}" />`;
+    avatarEl.style.background = 'transparent';
+    avatarEl.style.padding = '0';
+  } else {
+    avatarEl.textContent = player.name[0].toUpperCase();
+    avatarEl.style.background = player.color;
+  }
+  document.getElementById('header-user-name').textContent = player.name;
+  document.getElementById('header-user-pts').textContent = `${player.points} pts`;
+
+  // Agregar botón de cerrar sesión
+  addSignOutButton();
+
+  // Transición al app
+  const splash = document.getElementById('splash-screen');
+  if (!splash.classList.contains('hidden')) {
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity 0.6s ease';
+    setTimeout(() => {
+      splash.classList.add('hidden');
+      document.getElementById('main-app').classList.remove('hidden');
+      refreshHomeStats();
+      renderQuinielaSection();
+      renderRankingTable();
+      showSection('home');
+    }, 600);
+  }
+}
+
+function addSignOutButton() {
+  if (document.getElementById('btn-signout')) return;
+  const userDiv = document.querySelector('.header-user');
+  if (!userDiv) return;
+  const btn = document.createElement('button');
+  btn.id = 'btn-signout';
+  btn.title = 'Cerrar sesión';
+  btn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;color:var(--text-muted);cursor:pointer;font-size:16px;transition:all 0.2s;';
+  btn.textContent = '🚪';
+  btn.onmouseenter = () => { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)'; };
+  btn.onmouseleave = () => { btn.style.borderColor = 'rgba(255,255,255,0.1)'; btn.style.color = 'var(--text-muted)'; };
+  btn.onclick = async () => {
+    const { signOut } = FB;
+    await signOut(auth);
+    location.reload();
+  };
+  userDiv.appendChild(btn);
+}
 
 // =============================================
 //  DATOS: GRUPOS Y EQUIPOS DEL MUNDIAL 2026
@@ -409,11 +527,12 @@ async function saveState() {
 async function saveToFirestore() {
   if (!USE_FIREBASE || !state.currentPlayer) return;
   const { doc, setDoc } = FB;
-  const playerKey = state.currentPlayer.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  // Usar UID si hay auth de Google, o nombre como key si no
+  const playerKey = state.currentPlayer.uid || state.currentPlayer.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
   await setDoc(doc(db, 'players', playerKey), {
     ...state.currentPlayer,
     updatedAt: new Date().toISOString()
-  });
+  }, { merge: true });
 }
 
 async function saveRealResultFirestore(matchId, home, away) {
@@ -815,8 +934,11 @@ function renderRankingTable() {
         <td class="rank-pos">${pos}</td>
         <td>
           <div style="display:flex;align-items:center;gap:10px">
-            <div class="user-avatar" style="width:34px;height:34px;background:${p.color};font-size:14px">
-              ${p.name[0].toUpperCase()}
+            <div class="user-avatar" style="width:34px;height:34px;background:${p.color};font-size:14px;padding:0;overflow:hidden">
+              ${p.photo
+                ? `<img src="${p.photo}" alt="${p.name}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" />`
+                : p.name[0].toUpperCase()
+              }
             </div>
             <strong>${p.name}</strong>
             ${p.name === state.currentPlayer?.name ? '<span style="font-size:11px;color:var(--gold);margin-left:4px">← Tú</span>' : ''}
